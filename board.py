@@ -64,3 +64,7 @@ class Board:
 
         plt.gca().invert_yaxis()
         plt.show()
+
+    def get_piece(self, position):
+        x, y = position
+        return self.grid[y][x]
