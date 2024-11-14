@@ -26,25 +26,62 @@ class KhetGame:
     def get_all_possible_moves(self):
         possible_moves = []
         board = self.board_history[-1]
-        for piece in board.list_of_pieces:
+        for piece in board.get_list_of_pieces():
             if piece.color == self.turn:
                 for move in board.list_possible_moves(piece):
                     possible_moves.append((piece, move))
         return possible_moves
     
+
+    def make_move_pos(self, position, action):
+        current_board = self.board_history[-1]
+        piece = current_board.get_grid_position(position)
+        if piece is None:
+            raise Exception("No piece at position")
+        if piece.color != self.turn:
+            raise Exception("Not your turn")
+        if action not in piece.allowed_moves:
+            raise Exception("Invalid move")
+        self.make_move((piece, action))
+
     def make_move(self, move):
         piece, action = move
+
+        if piece is None and action == action.PASS:
+            self.move_history.append((None, action))
+        else:
+            self.move_history.append((piece.deepcopy(), action))
+
         current_board = self.board_history[-1]
-        self.board_history.append(current_board.make_move(piece, action))
-        self.move_history.append((piece, action))
+        next_board = current_board.make_move(move)
+        self.print_move(self.move_history[-1])
+
+        laser_target = next_board.fire_laser(self.turn)
+        print(f"{self.turn} Laser target: {laser_target}")
+
+
+        self.board_history.append(next_board)
         self.switch_turn()
 
-    def print_moves(self, moves):
-        for piece, action in moves:
-            self.print_move(piece, action)
+        if isinstance(laser_target, Pharaoh):
+            self.end_game(laser_target.color)
 
-    def print_move(self, piece, action):
-        print(f"{piece.color} {piece} at {piece.position} -> {action}")
+    def end_game(self, loser):
+        if loser == "Silver":
+            print("Red wins!")
+        else:   
+            print("Silver wins!")
+
+    def print_moves(self, moves):
+        for move in moves:
+            self.print_move(move)
+
+    def print_move(self, move):
+        piece, action = move
+        if piece is not None:
+            print(f"{piece.color} {piece} at {piece.position} -> {action}") 
+        else:
+            print(f"PASS")
 
     def get_current_board(self):
         return self.board_history[-1]
@@ -52,20 +89,33 @@ class KhetGame:
 
 ## list of starting pieces
 list_of_starting_pieces = []
-list_of_starting_pieces.append(Sphynx("Silver", (9, 0)))
-list_of_starting_pieces.append(Sphynx("Red", (0, 7)))
+list_of_starting_pieces.append(Sphynx("Silver", (9, 0), 0))
+list_of_starting_pieces.append(Sphynx("Red", (0, 7), 2))
 list_of_starting_pieces.append(Pyramid("Silver", (9, 3), 2))
 list_of_starting_pieces.append(Pyramid("Red", (0, 4), 0))
 list_of_starting_pieces.append(Pharaoh("Silver", (9, 4)))
-list_of_starting_pieces.append(Scarab("Silver", (8, 2)))
+list_of_starting_pieces.append(Pharaoh("Red", (0, 0)))
+list_of_starting_pieces.append(Scarab("Silver", (4, 4), 1))
+list_of_starting_pieces.append(Pyramid("Red", (3, 6), 1))
+list_of_starting_pieces.append(Scarab("Red", (9, 6), 0))
+list_of_starting_pieces.append(Anubis("Silver", (6, 6), 3))
 
 # Example usage
 if __name__ == "__main__":
     game = KhetGame(list_of_starting_pieces)
 
-    silver_moves = game.get_all_possible_moves()
-    game.print_moves(game.get_all_possible_moves())
-    position = (8,2)
-    game.make_move((position, action.NORTH_EAST))
+    game.make_move_pos((4,4), action.WEST)
+    game.make_move((None, action.PASS))
+    game.make_move_pos((6,6), action.EAST)
+    game.make_move((None, action.PASS))
+    game.make_move_pos((7,6), action.ROTATE_CW)
+    game.make_move((None, action.PASS))
+    game.make_move_pos((9,4), action.WEST)
+    game.make_move_pos((9,6), action.WEST)
+    #game.make_move_pos((7,2), action.WEST)
+    #game.make_move((None, action.PASS))
+    #game.make_move_pos((6,2), action.WEST)
 
-    game.get_current_board().display_board()
+    board_to_display = game.board_history[-1]
+    board_to_display.display_board()
+
